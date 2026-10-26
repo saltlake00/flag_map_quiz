@@ -16,6 +16,8 @@
 * 판이 끝나면 총점, 이름·위치 맞힌 수, 틀린 나라 목록. 최고 기록은 이 브라우저의 localStorage(`flagmap.v1`)에만 남습니다.
 * 지도는 ＋/－/⟲ 버튼, 마우스 휠, 두 손가락으로 확대하고 끌어서 이동합니다. 휴대폰에서는 작은 나라를 확대해서 누릅니다.
 
+여럿이 한 방에서 겨루는 멀티플레이 규칙(초안)은 [docs/멀티플레이-규칙.md](docs/멀티플레이-규칙.md)에 있습니다.
+
 ## 2. 폴더 구조
 * `primary_data/` : 원본 자료 (daily-study 「배우기」 탭에서 복사)
   * `world.toml` 나라 39개(이름·별칭·대륙·위치 설명), `countries-110m.json` 세계 지도(world-atlas 2.0.2, Natural Earth 1:110m), `flags/` 국기(flag-icons 7.2.3, MIT)
