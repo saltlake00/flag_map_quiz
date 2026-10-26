@@ -187,16 +187,52 @@
       .sort((a, b) => b.total - a.total || b.nameHits + b.placeHits - (a.nameHits + a.placeHits) || a.nick.localeCompare(b.nick, "ko"));
   }
 
-  /** 판 결과 요약. results: [{country, nameOk, placeOk, km, nameScore, placeScore}] */
-  function summarize(results) {
-    const total = results.reduce((s, r) => s + r.nameScore + r.placeScore, 0);
+  /** 출제 방식: both(이름 → 위치), name(이름만), place(나라 이름을 보고 위치만). 모르는 값은 both. */
+  const MODES = ["both", "name", "place"];
+  function normalizeMode(mode) {
+    return MODES.includes(mode) ? mode : "both";
+  }
+  /** 그 방식에서 푸는 단계. */
+  function modeStages(mode) {
+    const m = normalizeMode(mode);
+    return { name: m !== "place", place: m !== "name" };
+  }
+  /** 문제 n개 만점: 단계마다 100점. */
+  function maxScore(mode, n = ROUND_SIZE) {
+    const s = modeStages(mode);
+    return n * 100 * (Number(s.name) + Number(s.place));
+  }
+
+  /** 판 결과 요약. results: [{country, nameOk, placeOk, km, nameScore, placeScore}]. 틀린 문제는 푼 단계만 본다. */
+  function summarize(results, mode = "both") {
+    const s = modeStages(mode);
+    const total = results.reduce((sum, r) => sum + r.nameScore + r.placeScore, 0);
     return {
       total,
-      max: results.length * 200,
+      max: maxScore(mode, results.length),
       nameHits: results.filter((r) => r.nameOk).length,
       placeHits: results.filter((r) => r.placeOk).length,
-      missed: results.filter((r) => !r.nameOk || !r.placeOk),
+      missed: results.filter((r) => (s.name && !r.nameOk) || (s.place && !r.placeOk)),
     };
+  }
+
+  /** 저장 기록을 {best: {both, name, place}, plays}로 맞춘다. 옛 기록({best: 숫자})은 이름+위치 기록으로 옮긴다. */
+  function normalizeStore(raw) {
+    const out = { best: { both: 0, name: 0, place: 0 }, plays: 0 };
+    if (!raw || typeof raw !== "object") return out;
+    out.plays = Math.max(0, Number(raw.plays) || 0);
+    if (typeof raw.best === "number") out.best.both = Math.max(0, raw.best);
+    else if (raw.best && typeof raw.best === "object") for (const m of MODES) out.best[m] = Math.max(0, Number(raw.best[m]) || 0);
+    return out;
+  }
+  /** 한 판 끝: 판 수를 늘리고 그 방식 최고 기록을 고친다. 새 기록이면 isBest. */
+  function recordBest(rawStore, mode, total) {
+    const store = normalizeStore(rawStore);
+    const m = normalizeMode(mode);
+    const isBest = total > store.best[m];
+    store.best[m] = Math.max(store.best[m], total);
+    store.plays += 1;
+    return { store, isBest };
   }
 
   const api = {
@@ -221,7 +257,13 @@
     nameScore,
     placeScore,
     pickRound,
+    MODES,
+    normalizeMode,
+    modeStages,
+    maxScore,
     summarize,
+    normalizeStore,
+    recordBest,
     hashRoomPassword,
     generateRoomCode,
     rankPlayers,

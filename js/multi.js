@@ -8,6 +8,7 @@
  * 통신은 net.js(RoomNetwork: 공개 MQTT 브로커 + 같은 기기 탭 채널 + PeerJS).
  *
  * 단계: lobby → [name → nameReveal → place → placeReveal] × 10 → final
+ * 출제 방식(room.mode, 방장이 대기실에서 고름): both는 위 네 단계, name은 name → nameReveal, place는 place → placeReveal.
  */
 (function () {
   "use strict";
@@ -17,6 +18,7 @@
   const $ = (id) => document.getElementById(id);
   const NICK_KEY = "flagmap.nick";
   const NAME_REVEAL_MS = 2500;
+  const NAME_ONLY_REVEAL_MS = 4000; // 이름만: 지도에서 위치까지 보여 주느라 조금 길게
   const PLACE_REVEAL_MS = 6000;
   const GRACE_MS = 1500; // 시간 끝 뒤 늦게 도착하는 답을 기다리는 여유
   const PING_MS = 3000;
@@ -29,10 +31,13 @@
     place: E.MULTI_PLACE_LIMIT_MS,
     placeReveal: PLACE_REVEAL_MS,
   };
+  function limitOf(phase) {
+    return phase === "nameReveal" && room && room.mode === "name" ? NAME_ONLY_REVEAL_MS : LIMIT[phase];
+  }
   const PLAY_PHASES = ["name", "nameReveal", "place", "placeReveal"];
   const byCode = new Map(window.WORLD.map((c) => [c.code, c]));
 
-  const M = { active: false, onMapTap, submitName, again };
+  const M = { active: false, onMapTap, submitName, again, leave: () => leave() };
   window.FlagMulti = M;
 
   let net = null;
@@ -49,6 +54,8 @@
   // 내 화면
   let localEnds = 0;
   let shownKey = "";
+  let shownQi = -2;
+  let myHist = []; // 문제별 내 결과 (결과 화면 「문제별 결과」용)
   let myName = null;
   let myPlace = null;
   let pin = null; // {xy, hitCode, pxPerUnit, at}
@@ -89,7 +96,7 @@
 
   /* ---------- 방장: 진행 ---------- */
   function newRoom(code) {
-    return { code, phase: "lobby", qi: -1, codes: [], left: 0, players: {}, ans: {} };
+    return { code, mode: "both", phase: "lobby", qi: -1, codes: [], left: 0, players: {}, ans: {} };
   }
   function addPlayer(uid, nick, host) {
     let clean = (nick || randomNick()).trim().slice(0, 12) || randomNick();
@@ -144,7 +151,8 @@
     room.qi += 1;
     room.ans = {};
     if (room.qi >= room.codes.length) return setPhase("final", 0);
-    setPhase("name", LIMIT.name);
+    if (room.mode === "place") setPhase("place", LIMIT.place);
+    else setPhase("name", LIMIT.name);
   }
   function players() {
     return Object.entries(room.players).filter(([, p]) => !p.spectating);
@@ -167,12 +175,12 @@
       const allDone = waiting.length > 0 && waiting.every(([uid]) => ansOf(uid)[kind]);
       if (allDone || t > endsAt + GRACE_MS) {
         closeStage(kind);
-        if (kind === "name") setPhase("nameReveal", LIMIT.nameReveal);
+        if (kind === "name") setPhase("nameReveal", limitOf("nameReveal"));
         else setPhase("placeReveal", LIMIT.placeReveal);
         return;
       }
     } else if (room.phase === "nameReveal" && t >= endsAt) {
-      return setPhase("place", LIMIT.place);
+      return room.mode === "name" ? nextQuestion() : setPhase("place", LIMIT.place);
     } else if (room.phase === "placeReveal" && t >= endsAt) {
       return nextQuestion();
     }
@@ -299,7 +307,9 @@
     lastSeen.clear();
     room = null;
     shownKey = "";
+    shownQi = -2;
     M.active = false;
+    A.stopTimer();
     $("screen-play").classList.remove("multi", "reveal", "name", "place");
     for (const id of ["board", "btn-confirm", "hud-room"]) $(id).classList.add("hidden");
     if (!quiet) A.show("screen-home");
@@ -321,7 +331,23 @@
       shownKey = key;
       enterPhase(state.phase);
     }
+    recordMine();
     renderPeople();
+  }
+
+  /** 문제 결과가 나오면 내 답을 기록해 둔다 (결과 화면에서 다시 보기). 같은 문제는 덮어쓴다. */
+  function recordMine() {
+    if (!room || (room.phase !== "nameReveal" && room.phase !== "placeReveal")) return;
+    if (!me() || me().spectating) return;
+    const a = ansOf(myId);
+    myHist[room.qi] = {
+      country: country(),
+      nameOk: Boolean(a.name && a.name.ok),
+      nameScore: (a.name && a.name.score) || 0,
+      placeOk: Boolean(a.place && a.place.ok),
+      km: a.place && a.place.km != null ? a.place.km : null,
+      placeScore: (a.place && a.place.score) || 0,
+    };
   }
 
   function enterPhase(phase) {
@@ -331,6 +357,7 @@
     if (phase === "lobby") return showLobby();
     if (phase === "final") return showFinal();
     A.show("screen-play");
+    A.setPlayMode(room.mode);
     play.classList.add("multi");
     play.classList.toggle("name", phase === "name" || phase === "nameReveal");
     play.classList.toggle("place", phase === "place" || phase === "placeReveal");
@@ -340,15 +367,20 @@
     $("hud-q").textContent = `${room.qi + 1} / ${room.codes.length}`;
     const c = country();
     const spectating = me() && me().spectating;
-    if (phase === "name") {
+    if (room.qi !== shownQi) {
+      // 새 문제: 첫 단계가 이름이든 위치든 여기서 정리한다
+      if (room.qi === 0) myHist = [];
+      shownQi = room.qi;
       myName = myPlace = pin = null;
       A.clearMapFx();
       A.resetView();
       $("flag").src = `primary_data/flags/${c.code}.svg`;
-      $("stage").textContent = "1단계 · 나라 이름";
+      $("btn-confirm").classList.add("hidden");
+    }
+    if (phase === "name") {
+      $("stage").textContent = A.stageLabel(room.mode, "name");
       $("ask").textContent = "이 국기의 나라는?";
       $("name-form").classList.remove("hidden");
-      $("btn-confirm").classList.add("hidden");
       const input = $("name-in");
       input.value = "";
       input.disabled = spectating;
@@ -359,11 +391,14 @@
       $("name-in").blur();
       $("name-form").classList.add("hidden");
       const a = ansOf(myId).name;
-      if (spectating || !a) A.feedback("", `정답은 ${c.name}`);
-      else if (a.ok) A.feedback("ok", `정답! +${a.score}`, c.name);
-      else A.feedback("no", myName ? "아쉬워요" : "시간 끝!", `정답은 ${c.name}`);
+      const sub = room.mode === "name" ? c.where : "";
+      if (spectating || !a) A.feedback("", `정답은 ${c.name}`, sub);
+      else if (a.ok) A.feedback("ok", `정답! +${a.score}`, room.mode === "name" ? `${c.name} · ${c.where}` : c.name);
+      else A.feedback("no", myName ? "아쉬워요" : "시간 끝!", `정답은 ${c.name}${sub ? " · " + sub : ""}`);
+      if (room.mode === "name") A.showAnswerOnMap(c);
     } else if (phase === "place") {
-      $("stage").textContent = "2단계 · 지도에서 찾기";
+      $("name-form").classList.add("hidden");
+      $("stage").textContent = A.stageLabel(room.mode, "place");
       $("ask").innerHTML = `지도에서 <b>${c.name}</b>${A.objParticle(c.name)} 누르세요`;
       A.feedback("", spectating ? "구경 중" : "", spectating ? "" : "핀을 놓고 「확정」을 누르세요. 다시 누르면 핀이 옮겨집니다.");
       if (window.matchMedia("(max-width: 820px)").matches) $("mapcard").scrollIntoView({ behavior: "smooth", block: "end" });
@@ -371,7 +406,7 @@
       $("btn-confirm").classList.add("hidden");
       drawReveal(c);
     }
-    stageStartLocal = localEnds - LIMIT[phase];
+    stageStartLocal = localEnds - limitOf(phase);
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(tick);
   }
@@ -379,12 +414,8 @@
   function tick() {
     if (!room || !PLAY_PHASES.includes(room.phase)) return;
     const left = Math.max(0, localEnds - now());
-    const ratio = left / LIMIT[room.phase];
-    const bar = $("timer-bar");
-    bar.style.width = ratio * 100 + "%";
     const answering = room.phase === "name" || room.phase === "place";
-    bar.classList.toggle("low", answering && ratio < 0.3);
-    bar.classList.toggle("rest", !answering);
+    A.setTimer(left, limitOf(room.phase), !answering);
     // 시간이 끝났는데 핀만 놓고 확정을 안 눌렀으면 놓인 핀으로 낸다
     if (left <= 0 && room.phase === "place" && pin && !myPlace) confirmPin();
     rafId = requestAnimationFrame(tick);
@@ -509,7 +540,10 @@
     $("hud-score").textContent = mine ? mine.total : 0;
     if (room.phase === "lobby") {
       const list = ranked();
-      $("lobby-count").textContent = `참가자 ${list.length}명`;
+      $("lobby-count").textContent = `참가자 ${list.length} / 12`;
+      A.setSeg($("mode-lobby"), E.normalizeMode(room.mode));
+      for (const b of $("mode-lobby").querySelectorAll("button")) b.disabled = !isHost;
+      $("mode-lobby-who").textContent = isHost ? "" : "· 방장 설정";
       $("lobby-people").innerHTML = list.map((p) => personRow(p.uid, p, p.away ? '<span class="x">연결 끊김</span>' : "")).join("");
     } else if (PLAY_PHASES.includes(room.phase)) {
       $("board-list").innerHTML = ranked()
@@ -519,6 +553,8 @@
   }
   function showLobby() {
     cancelAnimationFrame(rafId);
+    A.stopTimer();
+    A.disarmQuit();
     A.show("screen-lobby");
     $("hud").classList.add("hidden");
     $("lobby-code").textContent = room.code;
@@ -527,25 +563,39 @@
   }
   function showFinal() {
     cancelAnimationFrame(rafId);
+    A.stopTimer();
+    A.disarmQuit();
     const list = ranked().filter((p) => !p.spectating);
-    const myRank = list.findIndex((p) => p.uid === myId) + 1;
-    const mine = me();
-    $("r-total").textContent = mine ? mine.total : 0;
-    $("r-max").textContent = ` / ${room.codes.length * 200}`;
-    $("r-best").textContent = myRank ? `${list.length}명 중 ${myRank}등` : "구경했습니다";
+    const mine = me() || { total: 0, nameHits: 0, placeHits: 0 };
+    // 동점은 같은 등수(아래 순위표와 같은 규칙): 나와 점수가 같은 첫 사람의 자리.
+    const myRank = list.some((p) => p.uid === myId) ? list.findIndex((p) => p.total === mine.total) + 1 : 0;
+    const playing = me() && !me().spectating;
+    A.showResult({
+      mode: E.normalizeMode(room.mode),
+      total: mine.total,
+      max: E.maxScore(room.mode, room.codes.length),
+      best: myRank ? `${list.length}명 중 ${myRank}등` : "구경했습니다",
+      nameHits: mine.nameHits,
+      placeHits: mine.placeHits,
+      entries: playing ? myHist.filter(Boolean) : [],
+    });
+    if (!playing) $("r-stats").classList.add("hidden");
+    const st = E.modeStages(room.mode);
     let prev = null;
     let place = 0;
     $("r-rank").innerHTML = list
       .map((p, i) => {
         if (!prev || p.total !== prev.total) place = i + 1;
         prev = p;
-        return personRow(p.uid, p, `<span class="sub">${place}등 · 이름 ${p.nameHits} · 위치 ${p.placeHits}</span> <b>${p.total}</b>`);
+        const hits = [st.name ? `이름 ${p.nameHits}` : "", st.place ? `위치 ${p.placeHits}` : ""].filter(Boolean).join(" · ");
+        return personRow(p.uid, p, `<span class="sub">${place}등 · ${hits}</span> <b>${p.total}</b>`);
       })
       .join("");
-    for (const id of ["r-stats", "r-missed-title", "r-missed"]) $(id).classList.add("hidden");
     $("r-rank").classList.remove("hidden");
     $("btn-again").classList.toggle("hidden", !isHost);
+    $("btn-to-lobby").classList.toggle("hidden", !isHost);
     $("r-wait").classList.toggle("hidden", isHost);
+    $("btn-home").classList.add("hidden");
     $("btn-r-leave").classList.remove("hidden");
     A.show("screen-result");
   }
@@ -557,11 +607,26 @@
     if (e.key === "Enter" && !e.isComposing) join();
   });
   $("btn-mp-start").onclick = () => isHost && room && room.phase === "lobby" && startRound();
+  $("btn-to-lobby").onclick = () => isHost && room && room.phase === "final" && setPhase("lobby", 0);
+  A.bindSeg($("mode-lobby"), (m) => {
+    if (!isHost || !room || room.phase !== "lobby") return;
+    room.mode = E.normalizeMode(m);
+    sync();
+  });
   $("btn-confirm").onclick = confirmPin;
   $("btn-leave").onclick = () => leave();
   $("btn-r-leave").onclick = () => leave();
   $("btn-copy").onclick = async () => {
     const url = `${location.origin}${location.pathname}?room=${room.code}`;
+    // 폰에서는 공유 시트(카톡 등)로 바로 보낸다. 데스크톱은 링크 복사
+    if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
+      try {
+        await navigator.share({ title: "국기·지도 찾기", text: `방 코드 ${room.code}`, url });
+        return;
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+      }
+    }
     try {
       await navigator.clipboard.writeText(url);
       toast("초대 링크를 복사했습니다");
@@ -581,7 +646,7 @@
   const roomParam = new URLSearchParams(location.search).get("room");
   if (roomParam) {
     $("mp-code").value = roomParam.toUpperCase().slice(0, 5);
-    document.querySelector(".together").scrollIntoView({ block: "center" });
+    A.selectTab("multi");
     $("mp-nick").focus({ preventScroll: true });
   }
   if (!window.RoomNetwork || (!window.mqtt && !window.Peer)) {

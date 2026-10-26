@@ -95,12 +95,58 @@ main {
 .btn.big { min-height: 48px; padding: 0 32px; }
 .btn:focus-visible { outline: 2px solid var(--text-main); outline-offset: 2px; }
 
+.btn.wide { width: 100%; }
+
 /* 처음·결과 */
 .home, .result { max-width: 560px; margin: 24px auto; text-align: center; }
 .home h1 { font-size: 20px; font-weight: 600; line-height: 1.5; margin: 4px 0 20px; }
-.rules { text-align: left; color: var(--text-sub); line-height: 1.8; padding-left: 20px; margin: 0 0 20px; }
+.best { color: var(--accent); min-height: 1.2em; margin: 0 0 16px; }
+
+/* 처음 화면 탭: 밑줄 하나로 지금 탭만 표시 */
+.tabs { display: flex; border-bottom: 1px solid var(--border); margin: 0 -20px 20px; padding: 0 20px; }
+.tabs [role="tab"] {
+  flex: 1;
+  font: inherit;
+  font-size: 16px;
+  min-height: 48px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.tabs [role="tab"][aria-selected="true"] { color: var(--text-main); border-bottom-color: var(--text-main); font-weight: 600; }
+.tabs [role="tab"]:focus-visible { outline: 2px solid var(--text-main); outline-offset: -2px; }
+#panel-solo, #panel-multi { text-align: left; }
+#panel-solo .best { text-align: center; margin-top: 16px; }
+.label { font-size: 13px; font-weight: 400; color: var(--text-sub); margin: 0 0 8px; text-align: left; }
+.lead { margin: 0 0 16px; line-height: 1.6; }
+
+/* 출제 방식: 세 칸 한 줄, 고른 칸만 밝게 */
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 999px; }
+.seg button {
+  font: inherit;
+  font-size: 14px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg button[aria-checked="true"] { background: var(--text-main); color: var(--bg-main); font-weight: 600; }
+.seg button:disabled { cursor: default; }
+.seg button:disabled:not([aria-checked="true"]) { opacity: 0.5; }
+.seg button:focus-visible { outline: 2px solid var(--text-main); outline-offset: 2px; }
+.mode-desc { margin: 8px 4px 0; line-height: 1.6; min-height: 3.2em; }
+
+.rules-box { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); text-align: left; color: var(--text-sub); }
+.rules-box summary { cursor: pointer; font-size: 13px; min-height: 32px; display: flex; align-items: center; }
+.rules { line-height: 1.8; padding-left: 20px; margin: 8px 0 0; }
 .rules b { color: var(--text-main); font-weight: 600; }
-.best { color: var(--accent); min-height: 1.2em; margin: 0 0 20px; }
 
 .result h2 { font-size: 16px; font-weight: 600; color: var(--text-sub); margin: 0; }
 .total { font-size: 48px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; line-height: 1.2; }
@@ -111,18 +157,39 @@ main {
 .stats span { display: block; color: var(--text-sub); font-size: 13px; }
 .stats b { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .result h3 { margin: 24px 0 4px; font-size: 13px; font-weight: 400; color: var(--text-sub); text-align: left; }
-.missed { list-style: none; padding: 0; margin: 0 0 24px; text-align: left; }
-.missed li { display: grid; grid-template-columns: 48px 1fr; gap: 2px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
-.missed img { grid-row: span 2; width: 48px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 4px; }
-.missed .nm { font-size: 16px; font-weight: 600; }
-.missed .tags { color: var(--text-sub); font-size: 13px; }
-.missed .x { color: var(--danger); }
-.missed .o { color: var(--success); }
+.result h3:empty { display: none; }
+/* 문제별 결과: 번호·국기·나라·점수 한 줄, 그 아래 단계별 표시. 틀린 문제는 왼쪽 빨간 선 */
+.review { list-style: none; padding: 0; margin: 0 0 24px; text-align: left; }
+.review li {
+  display: grid;
+  grid-template-columns: 20px 48px 1fr auto;
+  gap: 2px 12px;
+  align-items: center;
+  padding: 10px 8px 10px 6px;
+  border-top: 1px solid var(--border);
+  border-left: 2px solid transparent;
+}
+.review li.bad { border-left-color: var(--danger); }
+.review .no { grid-row: span 2; color: var(--text-sub); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.review img { grid-row: span 2; width: 48px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 4px; }
+.review .nm { font-size: 16px; font-weight: 600; }
+.review .pt { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.review .tags { grid-column: 3 / -1; color: var(--text-sub); font-size: 13px; }
+.review .x { color: var(--danger); }
+.review .o { color: var(--success); }
+.result-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.result-actions .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.result-actions .wait { margin: 4px 0; }
 
-/* 게임 */
-.timer { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+/* 게임: 타이머는 막대 + 남은 초 */
+.timer-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.timer { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
 .timer-bar { height: 100%; width: 100%; background: var(--text-main); transition: background 0.3s; }
 .timer-bar.low { background: var(--danger); }
+.timer-sec { flex: none; min-width: 3.5em; text-align: right; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.timer-sec.low { color: var(--danger); }
+.hud .quit { min-height: 36px; padding: 0 12px; font-size: 13px; margin-left: 4px; }
+.hud .quit.armed { color: var(--danger); border-color: var(--danger); }
 
 .play-grid { display: grid; grid-template-columns: minmax(280px, 340px) 1fr; gap: 16px; align-items: start; }
 
@@ -176,9 +243,6 @@ main {
 
 /* 멀티플레이 */
 .sub { color: var(--text-sub); font-size: 13px; }
-.together { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: left; }
-.together h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
-.together .sub { margin: 0 0 16px; line-height: 1.6; }
 .field { display: block; margin-bottom: 12px; }
 .field span { display: block; color: var(--text-sub); font-size: 13px; margin-bottom: 4px; }
 .field input, #mp-code {
@@ -194,18 +258,24 @@ main {
 }
 .field input:focus, #mp-code:focus { outline: none; border-color: var(--text-sub); }
 .join-row { display: flex; gap: 8px; align-items: center; }
-.join-row .or { color: var(--text-sub); font-size: 13px; flex: none; }
 #mp-code { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: 0.1em; }
+.join-row .btn { flex: none; min-width: 88px; }
+.or-line { display: flex; align-items: center; gap: 12px; color: var(--text-sub); font-size: 13px; margin: 16px 0; }
+.or-line::before, .or-line::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
 .btn:disabled { opacity: 0.4; cursor: default; }
 .alert { color: var(--danger); margin: 12px 0 0; }
 
-.lobby { max-width: 480px; margin: 24px auto; text-align: center; }
-.lobby .sub { margin: 0; }
-.room-code { font-size: 48px; font-weight: 700; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; margin: 4px 0 12px; }
-.lobby h3 { margin: 24px 0 4px; font-size: 13px; font-weight: 400; color: var(--text-sub); text-align: left; }
-.lobby .btn.big { margin-top: 20px; }
-.lobby #lobby-wait { margin-top: 20px; }
-.lobby #btn-leave { margin-top: 8px; }
+/* 대기실: 방 코드와 초대 → 출제 방식 → 참가자 → 시작 */
+.lobby { max-width: 520px; margin: 24px auto; }
+.lobby-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.lobby-head .sub { margin: 0; }
+.room-code { font-size: 48px; font-weight: 700; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.lobby .label { margin-top: 0; }
+.lobby #lobby-count { margin-top: 20px; }
+#mode-lobby-who { color: var(--text-sub); }
+.lobby .people { margin-bottom: 20px; }
+.wait { text-align: center; color: var(--text-main); margin: 0; min-height: 48px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border); border-radius: 999px; }
+.lobby-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 #hud-room { color: var(--text-main); }
 
 .people { list-style: none; padding: 0; margin: 0; text-align: left; }
@@ -221,7 +291,9 @@ main {
 .rank { margin: 16px 0 24px; }
 
 .side { display: flex; flex-direction: column; gap: 16px; }
-.board { padding: 8px 16px; }
+.side .board { order: 2; padding: 8px 16px; }
+/* 이름만: 지도는 답이 나온 뒤에만 쓴다 */
+.play.mode-name.name:not(.reveal) .mapcard { opacity: 0.35; }
 .timer-bar.rest { background: var(--text-sub); }
 .wmap .fx .pin.me { fill: var(--text-main); }
 #btn-confirm { min-width: 160px; }
@@ -244,7 +316,8 @@ main {
 @media (max-width: 820px) {
   main { padding: 12px; }
   .topbar-inner { padding: 10px 16px; }
-  .play-grid { grid-template-columns: 1fr; gap: 12px; }
+  /* minmax(0, …): 입력창 고유 너비가 칸을 화면 밖으로 밀지 않게 */
+  .play-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .card { padding: 16px; }
   .qcard .flag { max-width: 200px; }
 
@@ -264,18 +337,37 @@ main {
   .play.place .qcard .feedback,
   .play.place .qcard #btn-confirm,
   .play.place .qcard #btn-next { grid-column: 1 / -1; }
-  /* 멀티: 점수판은 지도 아래로. 지도를 누르는 동안에는 숨긴다 */
+  .tabs { margin: 0 -16px 16px; padding: 0 16px; }
+  .rules-box { margin-top: 20px; }
+  /* 게임 중 위 줄: 이름표 대신 문제 번호·점수·나가기만 */
+  body:has(#hud:not(.hidden)) .brand { display: none; }
+  .topbar-inner:has(#hud:not(.hidden)) { justify-content: flex-end; }
+  #hud-room { display: none; }
+  .timer-row { margin-bottom: 12px; }
+
+  /* 멀티: 점수판은 맨 위 한 줄(옆으로 밀기). 지도를 누르는 동안에도 보인다 */
   .side { display: contents; }
+  .side .board { order: 0; padding: 0; background: none; border: none; border-radius: 0; }
   .side .qcard { order: 1; }
   .mapcard { order: 2; }
-  .board { order: 3; }
-  .play.multi.place:not(.reveal) .board { display: none; }
-  .join-row { flex-wrap: wrap; }
-  .join-row #btn-create { flex: 1 1 100%; }
-  .join-row .or { display: none; }
+  .board .people { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .board .people::-webkit-scrollbar { display: none; }
+  .board .people li,
+  .board .people li:first-child { flex: none; min-height: 36px; padding: 0 12px; gap: 6px; border: 1px solid var(--border); border-radius: 999px; }
+  .board .people li.me { border-color: var(--accent); }
+  .board .people .nm { max-width: 6em; }
+  .board .people .nm small { display: none; }
+  .board .people .st b { margin-left: 4px; }
+  /* 이름만: 이름을 쓰는 동안은 지도를 치운다 (키보드가 올라와도 입력창이 보이게) */
+  .play.mode-name.name:not(.reveal) .mapcard { display: none; }
   .play.place .qcard .feedback:empty { display: none; }
   .play.place .mapcard { padding: 4px; }
-  .play.place .map-wrap { aspect-ratio: auto; height: calc(100dvh - 200px); min-height: 300px; }
+  /* 지도 칸을 화면에 맞추려 내려가도 남은 시간은 보이게: 게임 중 위 줄 바로 아래에 붙인다 */
+  .play.place .timer-row { position: sticky; top: 56px; z-index: 30; margin: 0 -12px 6px; padding: 6px 12px; background: var(--bg-main); }
+  .play.place .map-wrap { aspect-ratio: auto; height: calc(100dvh - 210px); min-height: 300px; }
+  .play.multi.place .map-wrap { height: calc(100dvh - 260px); }
+  .room-code { font-size: 48px; letter-spacing: 0.08em; }
+  .lobby-head .btn { flex: none; }
   .play.place .map-ctl { right: 12px; top: 12px; }
   body:has(.play.place:not(.hidden)) .foot { display: none; }
 }
