@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>국기·지도 찾기</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">🗺️ <b>국기·지도 찾기</b></div>
+    <div class="hud hidden" id="hud">
+      <span id="hud-q">1 / 10</span>
+      <span class="hud-score"><b id="hud-score">0</b>점</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- 처음 화면 -->
+  <section id="screen-home" class="card home">
+    <h1>국기를 보고 나라 이름을 쓰고,<br>세계 지도에서 그 나라를 찾으세요</h1>
+    <ol class="rules">
+      <li>한 판에 국기 <b>10개</b>. 이름 15초, 위치 20초.</li>
+      <li>빨리 맞힐수록 높은 점수 (문제마다 이름 100 + 위치 100).</li>
+      <li>위치가 틀려도 정답에서 2,000km 안이면 가까운 만큼 부분 점수.</li>
+      <li>지도는 확대(＋/휠/두 손가락)·이동(끌기)할 수 있어요. 경계 바로 옆을 눌러도 정답이라 작은 나라는 확대해서 누르세요.</li>
+    </ol>
+    <p class="best" id="home-best"></p>
+    <button class="btn primary big" id="btn-start">시작하기</button>
+  </section>
+
+  <!-- 게임 화면 -->
+  <section id="screen-play" class="play hidden">
+    <div class="timer"><div class="timer-bar" id="timer-bar"></div></div>
+    <div class="play-grid">
+      <div class="card qcard">
+        <div class="stage" id="stage">1단계 · 나라 이름</div>
+        <img id="flag" class="flag" alt="국기">
+        <div class="ask" id="ask"></div>
+        <form id="name-form" autocomplete="off">
+          <input id="name-in" aria-label="나라 이름" placeholder="나라 이름" enterkeyhint="done">
+          <button class="btn primary">확인</button>
+          <button type="button" class="btn ghost" id="btn-pass">모르겠음</button>
+        </form>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+        <button class="btn primary hidden" id="btn-next">다음 ▶</button>
+      </div>
+      <div class="card mapcard" id="mapcard">
+        <div class="map-wrap" id="map-wrap"></div>
+        <div class="map-ctl">
+          <button class="btn ghost" id="zoom-in" aria-label="확대">＋</button>
+          <button class="btn ghost" id="zoom-out" aria-label="축소">－</button>
+          <button class="btn ghost" id="zoom-reset" aria-label="전체 보기">⟲</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 결과 화면 -->
+  <section id="screen-result" class="card result hidden">
+    <h2>결과</h2>
+    <div class="total"><b id="r-total">0</b><span id="r-max"> / 2000</span></div>
+    <p class="best" id="r-best"></p>
+    <div class="stats">
+      <div><span>이름</span><b id="r-name">0 / 10</b></div>
+      <div><span>위치</span><b id="r-place">0 / 10</b></div>
+    </div>
+    <h3 id="r-missed-title">틀린 나라</h3>
+    <ul class="missed" id="r-missed"></ul>
+    <button class="btn primary big" id="btn-again">한 판 더</button>
+  </section>
+</main>
+
+<footer class="foot">국기: flag-icons (MIT) · 지도: Natural Earth (world-atlas) · 나라 목록: daily-study 「배우기」</footer>
+
+<script src="data/world.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

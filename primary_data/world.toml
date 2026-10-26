@@ -1,0 +1,436 @@
+# 세계 지도·국기 배우기 자료 (소식 페이지 「배우기」 탭)
+#
+# 순서가 곧 퀴즈에 나오는 순서다. 뉴스에 자주 나오는 나라를 앞에 둔다. 처음에는 앞 8개만 내고,
+# 익힌 비율이 오르면 4개씩 더 연다(local/learn.py).
+# code: ISO 3166-1 alpha-2(국기 파일 이름, local/assets/flags/<code>.svg — flag-icons 7.2.3, MIT)
+# num:  ISO 3166-1 숫자 코드(지도 local/assets/countries-110m.json — world-atlas 2.0.2, Natural Earth)
+# alias·capital_alias: 답으로 받아 줄 다른 이름. 띄어쓰기·가운뎃점은 채점에서 무시한다.
+
+[[country]]
+code = "us"
+num = "840"
+name = "미국"
+alias = ["미합중국", "아메리카"]
+capital = "워싱턴 D.C."
+capital_alias = ["워싱턴", "워싱턴DC"]
+lang = "영어"
+continent = "북아메리카"
+where = "북아메리카 가운데. 위로 캐나다, 아래로 멕시코"
+
+[[country]]
+code = "cn"
+num = "156"
+name = "중국"
+alias = ["중화인민공화국"]
+capital = "베이징"
+capital_alias = ["북경"]
+lang = "중국어"
+continent = "아시아"
+where = "한반도 서쪽의 큰 나라. 북한과 맞닿아 있다"
+
+[[country]]
+code = "jp"
+num = "392"
+name = "일본"
+alias = []
+capital = "도쿄"
+capital_alias = ["동경"]
+lang = "일본어"
+continent = "아시아"
+where = "한반도 동쪽 바다 건너 섬나라"
+
+[[country]]
+code = "ru"
+num = "643"
+name = "러시아"
+alias = ["러시아연방"]
+capital = "모스크바"
+capital_alias = []
+lang = "러시아어"
+continent = "유럽·아시아"
+where = "동유럽에서 아시아 북쪽 끝까지. 면적 세계 1위"
+
+[[country]]
+code = "kp"
+num = "408"
+name = "북한"
+alias = ["조선", "조선민주주의인민공화국"]
+capital = "평양"
+capital_alias = []
+lang = "한국어"
+continent = "아시아"
+where = "한반도 북쪽. 중국·러시아와 맞닿아 있다"
+
+[[country]]
+code = "gb"
+num = "826"
+name = "영국"
+alias = ["유나이티드킹덤"]
+capital = "런던"
+capital_alias = []
+lang = "영어"
+continent = "유럽"
+where = "유럽 북서쪽 바다의 섬나라. 프랑스와 해협을 사이에 둔다"
+
+[[country]]
+code = "fr"
+num = "250"
+name = "프랑스"
+alias = []
+capital = "파리"
+capital_alias = []
+lang = "프랑스어"
+continent = "유럽"
+where = "서유럽. 아래로 스페인, 오른쪽으로 독일·이탈리아"
+
+[[country]]
+code = "de"
+num = "276"
+name = "독일"
+alias = []
+capital = "베를린"
+capital_alias = []
+lang = "독일어"
+continent = "유럽"
+where = "유럽 한가운데. 왼쪽 프랑스, 오른쪽 폴란드"
+
+[[country]]
+code = "ua"
+num = "804"
+name = "우크라이나"
+alias = []
+capital = "키이우"
+capital_alias = ["키예프"]
+lang = "우크라이나어"
+continent = "유럽"
+where = "동유럽. 오른쪽(동쪽)이 러시아, 아래가 흑해"
+
+[[country]]
+code = "il"
+num = "376"
+name = "이스라엘"
+alias = []
+capital = "예루살렘"
+capital_alias = []
+lang = "히브리어"
+continent = "아시아"
+where = "서아시아(중동) 지중해 동쪽 끝의 작은 나라. 예루살렘을 수도로 인정하는지는 나라마다 갈린다"
+
+[[country]]
+code = "ir"
+num = "364"
+name = "이란"
+alias = []
+capital = "테헤란"
+capital_alias = []
+lang = "페르시아어"
+continent = "아시아"
+where = "서아시아(중동). 이라크 동쪽, 페르시아만 북쪽"
+
+[[country]]
+code = "br"
+num = "076"
+name = "브라질"
+alias = []
+capital = "브라질리아"
+capital_alias = []
+lang = "포르투갈어"
+continent = "남아메리카"
+where = "남아메리카 동쪽 절반을 차지하는 큰 나라"
+
+[[country]]
+code = "in"
+num = "356"
+name = "인도"
+alias = []
+capital = "뉴델리"
+capital_alias = ["델리"]
+lang = "힌디어·영어"
+continent = "아시아"
+where = "남아시아. 인도양으로 뻗은 역삼각형 반도. 인구 세계 1위"
+
+[[country]]
+code = "tw"
+num = "158"
+name = "대만"
+alias = ["타이완"]
+capital = "타이베이"
+capital_alias = []
+lang = "중국어"
+continent = "아시아"
+where = "중국 남동쪽 바다 건너 섬. 중국은 자기 영토라고 주장한다"
+
+[[country]]
+code = "ca"
+num = "124"
+name = "캐나다"
+alias = []
+capital = "오타와"
+capital_alias = []
+lang = "영어·프랑스어"
+continent = "북아메리카"
+where = "북아메리카 북쪽, 미국 위. 면적 세계 2위"
+
+[[country]]
+code = "mx"
+num = "484"
+name = "멕시코"
+alias = []
+capital = "멕시코시티"
+capital_alias = []
+lang = "스페인어"
+continent = "북아메리카"
+where = "미국 바로 아래(남쪽)"
+
+[[country]]
+code = "it"
+num = "380"
+name = "이탈리아"
+alias = []
+capital = "로마"
+capital_alias = []
+lang = "이탈리아어"
+continent = "유럽"
+where = "남유럽. 지중해로 뻗은 장화 모양 반도"
+
+[[country]]
+code = "es"
+num = "724"
+name = "스페인"
+alias = ["에스파냐"]
+capital = "마드리드"
+capital_alias = []
+lang = "스페인어"
+continent = "유럽"
+where = "유럽 남서쪽 끝 이베리아반도의 대부분. 프랑스 아래"
+
+[[country]]
+code = "sa"
+num = "682"
+name = "사우디아라비아"
+alias = ["사우디"]
+capital = "리야드"
+capital_alias = []
+lang = "아랍어"
+continent = "아시아"
+where = "서아시아(중동) 아라비아반도의 대부분. 석유 수출 대국"
+
+[[country]]
+code = "tr"
+num = "792"
+name = "튀르키예"
+alias = ["터키"]
+capital = "앙카라"
+capital_alias = []
+lang = "튀르키예어"
+continent = "아시아·유럽"
+where = "아시아와 유럽 사이. 위가 흑해, 아래가 지중해"
+
+[[country]]
+code = "vn"
+num = "704"
+name = "베트남"
+alias = []
+capital = "하노이"
+capital_alias = []
+lang = "베트남어"
+continent = "아시아"
+where = "동남아시아 인도차이나반도 동쪽 해안을 따라 긴 나라. 중국 아래"
+
+[[country]]
+code = "au"
+num = "036"
+name = "오스트레일리아"
+alias = ["호주"]
+capital = "캔버라"
+capital_alias = []
+lang = "영어"
+continent = "오세아니아"
+where = "남반구. 대륙 하나가 통째로 한 나라"
+
+[[country]]
+code = "pl"
+num = "616"
+name = "폴란드"
+alias = []
+capital = "바르샤바"
+capital_alias = []
+lang = "폴란드어"
+continent = "유럽"
+where = "중부 유럽. 독일 오른쪽(동쪽), 우크라이나 왼쪽"
+
+[[country]]
+code = "nl"
+num = "528"
+name = "네덜란드"
+alias = ["홀란드"]
+capital = "암스테르담"
+capital_alias = []
+lang = "네덜란드어"
+continent = "유럽"
+where = "서유럽 북해 연안. 독일 왼쪽(서쪽). 정부는 헤이그에 있다"
+
+[[country]]
+code = "eg"
+num = "818"
+name = "이집트"
+alias = []
+capital = "카이로"
+capital_alias = []
+lang = "아랍어"
+continent = "아프리카"
+where = "아프리카 북동쪽 끝. 나일강과 수에즈 운하"
+
+[[country]]
+code = "id"
+num = "360"
+name = "인도네시아"
+alias = []
+capital = "자카르타"
+capital_alias = []
+lang = "인도네시아어"
+continent = "아시아"
+where = "동남아시아의 섬나라. 섬이 1만 7천여 개. 새 수도 누산타라로 옮기는 중"
+
+[[country]]
+code = "ph"
+num = "608"
+name = "필리핀"
+alias = []
+capital = "마닐라"
+capital_alias = []
+lang = "필리핀어·영어"
+continent = "아시아"
+where = "동남아시아 섬나라. 대만 아래(남쪽)"
+
+[[country]]
+code = "th"
+num = "764"
+name = "태국"
+alias = ["타이"]
+capital = "방콕"
+capital_alias = []
+lang = "태국어"
+continent = "아시아"
+where = "동남아시아 인도차이나반도 가운데"
+
+[[country]]
+code = "ar"
+num = "032"
+name = "아르헨티나"
+alias = []
+capital = "부에노스아이레스"
+capital_alias = []
+lang = "스페인어"
+continent = "남아메리카"
+where = "남아메리카 남쪽. 왼쪽(서쪽)에 칠레"
+
+[[country]]
+code = "cl"
+num = "152"
+name = "칠레"
+alias = []
+capital = "산티아고"
+capital_alias = []
+lang = "스페인어"
+continent = "남아메리카"
+where = "남아메리카 서쪽 해안을 따라 남북으로 아주 긴 나라"
+
+[[country]]
+code = "ve"
+num = "862"
+name = "베네수엘라"
+alias = []
+capital = "카라카스"
+capital_alias = []
+lang = "스페인어"
+continent = "남아메리카"
+where = "남아메리카 북쪽, 카리브해 연안. 브라질 위"
+
+[[country]]
+code = "rs"
+num = "688"
+name = "세르비아"
+alias = []
+capital = "베오그라드"
+capital_alias = []
+lang = "세르비아어"
+continent = "유럽"
+where = "남동유럽 발칸반도 가운데. 바다가 없다"
+
+[[country]]
+code = "bg"
+num = "100"
+name = "불가리아"
+alias = []
+capital = "소피아"
+capital_alias = []
+lang = "불가리아어"
+continent = "유럽"
+where = "남동유럽 발칸반도 동쪽. 오른쪽이 흑해, 아래가 튀르키예"
+
+[[country]]
+code = "se"
+num = "752"
+name = "스웨덴"
+alias = []
+capital = "스톡홀름"
+capital_alias = []
+lang = "스웨덴어"
+continent = "유럽"
+where = "북유럽 스칸디나비아반도 동쪽. 왼쪽이 노르웨이"
+
+[[country]]
+code = "za"
+num = "710"
+name = "남아프리카공화국"
+alias = ["남아공", "남아프리카"]
+capital = "프리토리아"
+capital_alias = ["케이프타운", "블룸폰테인"]
+lang = "영어 등 공용어 12개"
+continent = "아프리카"
+where = "아프리카 남쪽 끝. 수도가 셋이다(행정 프리토리아, 입법 케이프타운, 사법 블룸폰테인)"
+
+[[country]]
+code = "ng"
+num = "566"
+name = "나이지리아"
+alias = []
+capital = "아부자"
+capital_alias = []
+lang = "영어"
+continent = "아프리카"
+where = "서아프리카, 기니만 연안. 인구 아프리카 1위"
+
+[[country]]
+code = "ke"
+num = "404"
+name = "케냐"
+alias = []
+capital = "나이로비"
+capital_alias = []
+lang = "스와힐리어·영어"
+continent = "아프리카"
+where = "동아프리카, 적도가 지나간다. 오른쪽이 인도양"
+
+[[country]]
+code = "nz"
+num = "554"
+name = "뉴질랜드"
+alias = []
+capital = "웰링턴"
+capital_alias = []
+lang = "영어·마오리어"
+continent = "오세아니아"
+where = "오스트레일리아 오른쪽 아래(남동쪽) 바다의 섬나라"
+
+[[country]]
+code = "kr"
+num = "410"
+name = "대한민국"
+alias = ["한국", "남한"]
+capital = "서울"
+capital_alias = []
+lang = "한국어"
+continent = "아시아"
+where = "한반도 남쪽"
