@@ -36,6 +36,8 @@ python -m http.server 8800             # http://localhost:8800
 node --test tests/engine.test.js
 ```
 
+`index.html`이 부르는 CSS·JS 주소에는 `?v=판번호`가 붙어 있습니다. 파일을 고쳐 배포할 때는 판 번호를 모두 같이 올립니다(안 올리면 GitHub Pages 캐시 때문에 옛 파일과 새 파일이 섞여 깨집니다).
+
 멀티는 브라우저 탭 두 개로 시험합니다. 한 탭에서 방을 만들고 다른 탭에서 `?room=코드`로 들어갑니다. 같은 기기 탭끼리는 BroadcastChannel로도 붙으므로, 다른 기기처럼 MQTT만 쓰게 하려면 참가 탭 콘솔에서 `window.BroadcastChannel = undefined` 후 참가합니다.
 
 나라를 더하려면 `primary_data/world.toml`에 `[[country]]`를 더하고(`code`·`num`은 ISO 3166-1), 국기 SVG를 `primary_data/flags/`에 넣은 뒤 빌드합니다.
