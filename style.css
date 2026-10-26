@@ -174,6 +174,72 @@ main {
 
 .foot { text-align: center; color: var(--text-sub); font-size: 12px; padding: 16px; }
 
+/* 멀티플레이 */
+.sub { color: var(--text-sub); font-size: 13px; }
+.together { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: left; }
+.together h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+.together .sub { margin: 0 0 16px; line-height: 1.6; }
+.field { display: block; margin-bottom: 12px; }
+.field span { display: block; color: var(--text-sub); font-size: 13px; margin-bottom: 4px; }
+.field input, #mp-code {
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  font-size: 16px;
+  padding: 0 14px;
+  background: var(--bg-input);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.field input:focus, #mp-code:focus { outline: none; border-color: var(--text-sub); }
+.join-row { display: flex; gap: 8px; align-items: center; }
+.join-row .or { color: var(--text-sub); font-size: 13px; flex: none; }
+#mp-code { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: 0.1em; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.alert { color: var(--danger); margin: 12px 0 0; }
+
+.lobby { max-width: 480px; margin: 24px auto; text-align: center; }
+.lobby .sub { margin: 0; }
+.room-code { font-size: 48px; font-weight: 700; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; margin: 4px 0 12px; }
+.lobby h3 { margin: 24px 0 4px; font-size: 13px; font-weight: 400; color: var(--text-sub); text-align: left; }
+.lobby .btn.big { margin-top: 20px; }
+.lobby #lobby-wait { margin-top: 20px; }
+.lobby #btn-leave { margin-top: 8px; }
+#hud-room { color: var(--text-main); }
+
+.people { list-style: none; padding: 0; margin: 0; text-align: left; }
+.people li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 6px 0; border-top: 1px solid var(--border); }
+.people li:first-child { border-top: none; }
+.people li.me .nm { color: var(--accent); }
+.people .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.people .nm small { color: var(--text-sub); font-weight: 400; font-size: 12px; }
+.people .st { color: var(--text-sub); font-size: 13px; font-variant-numeric: tabular-nums; flex: none; }
+.people .st b { color: var(--text-main); font-size: 14px; margin-left: 8px; }
+.people .o { color: var(--success); }
+.people .x { color: var(--danger); }
+.rank { margin: 16px 0 24px; }
+
+.side { display: flex; flex-direction: column; gap: 16px; }
+.board { padding: 8px 16px; }
+.timer-bar.rest { background: var(--text-sub); }
+.wmap .fx .pin.me { fill: var(--text-main); }
+#btn-confirm { min-width: 160px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  z-index: 50;
+  word-break: break-all;
+}
+
 /* 폰·좁은 화면 */
 @media (max-width: 820px) {
   main { padding: 12px; }
@@ -196,7 +262,17 @@ main {
   .play.place .qcard .flag { width: 64px; max-width: 64px; }
   .play.place .qcard .ask { font-size: 16px; }
   .play.place .qcard .feedback,
+  .play.place .qcard #btn-confirm,
   .play.place .qcard #btn-next { grid-column: 1 / -1; }
+  /* 멀티: 점수판은 지도 아래로. 지도를 누르는 동안에는 숨긴다 */
+  .side { display: contents; }
+  .side .qcard { order: 1; }
+  .mapcard { order: 2; }
+  .board { order: 3; }
+  .play.multi.place:not(.reveal) .board { display: none; }
+  .join-row { flex-wrap: wrap; }
+  .join-row #btn-create { flex: 1 1 100%; }
+  .join-row .or { display: none; }
   .play.place .qcard .feedback:empty { display: none; }
   .play.place .mapcard { padding: 4px; }
   .play.place .map-wrap { aspect-ratio: auto; height: calc(100dvh - 200px); min-height: 300px; }

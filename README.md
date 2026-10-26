@@ -16,7 +16,7 @@
 * 판이 끝나면 총점, 이름·위치 맞힌 수, 틀린 나라 목록. 최고 기록은 이 브라우저의 localStorage(`flagmap.v1`)에만 남습니다.
 * 지도는 ＋/－/⟲ 버튼, 마우스 휠, 두 손가락으로 확대하고 끌어서 이동합니다. 휴대폰에서는 작은 나라를 확대해서 누릅니다.
 
-여럿이 한 방에서 겨루는 멀티플레이 규칙(초안)은 [docs/멀티플레이-규칙.md](docs/멀티플레이-규칙.md)에 있습니다.
+**친구와 같이 (멀티플레이)**: 처음 화면 「친구와 같이」에서 방을 만들고 방 코드나 초대 링크(`?room=코드`)를 나눕니다. 모두 같은 국기를 같은 시간에 풀고, 지도는 핀을 놓고 「확정」을 눌러 제출합니다(위치 25초). 방장 브라우저가 진행을 맡고 통신은 공개 MQTT 브로커를 거칩니다. 규칙과 한계는 [docs/멀티플레이-규칙.md](docs/멀티플레이-규칙.md).
 
 ## 2. 폴더 구조
 * `primary_data/` : 원본 자료 (daily-study 「배우기」 탭에서 복사)
@@ -24,7 +24,9 @@
 * `scripts/build_data.py` : 나라 목록과 지도를 `data/world.js`로 묶습니다 (TopoJSON → SVG 경로, 등장방형 투영).
 * `data/world.js` : 자동 생성. 직접 고치지 않습니다.
 * `js/engine.js` : 화면과 무관한 규칙(채점·좌표 변환·거리·지도 판정·점수). node와 브라우저 둘 다에서 돕니다.
-* `js/app.js` : 화면 전환, 타이머, 지도 확대/이동/누르기.
+* `js/app.js` : 화면 전환, 타이머, 지도 확대/이동/누르기 (혼자 하기).
+* `js/multi.js` : 멀티플레이 진행(방장)·화면(모두). `window.FlagApp`으로 app.js의 지도 도구를 빌려 쓴다.
+* `js/net.js` : 멀티 통신. abstract_quiz `js/net.js`를 토픽 이름만 바꿔 가져왔다.
 * `tests/engine.test.js` : 엔진 시험.
 
 ## 3. 로컬 실행과 검증
@@ -33,5 +35,7 @@ python -X utf8 scripts/build_data.py   # primary_data를 바꿨을 때만
 python -m http.server 8800             # http://localhost:8800
 node --test tests/engine.test.js
 ```
+
+멀티는 브라우저 탭 두 개로 시험합니다. 한 탭에서 방을 만들고 다른 탭에서 `?room=코드`로 들어갑니다. 같은 기기 탭끼리는 BroadcastChannel로도 붙으므로, 다른 기기처럼 MQTT만 쓰게 하려면 참가 탭 콘솔에서 `window.BroadcastChannel = undefined` 후 참가합니다.
 
 나라를 더하려면 `primary_data/world.toml`에 `[[country]]`를 더하고(`code`·`num`은 ISO 3166-1), 국기 SVG를 `primary_data/flags/`에 넣은 뒤 빌드합니다.

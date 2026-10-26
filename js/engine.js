@@ -16,6 +16,7 @@
   const ROUND_SIZE = 10;
   const NAME_LIMIT_MS = 15000;
   const PLACE_LIMIT_MS = 20000;
+  const MULTI_PLACE_LIMIT_MS = 25000; // 멀티: 핀 놓고 확정하느라 5초 더 (docs/멀티플레이-규칙.md §1.1)
   const NEAR_TAP_PX = 24; // 경계 바깥을 눌러도 화면에서 이만큼 안이고
   const NEAR_TAP_KM = 400; // 실제로도 이만큼 안이면 정답 (작은 나라·섬)
   const NEAR_KM = 2000; // 이 거리 안에서 틀리면 가까운 만큼 부분 점수
@@ -137,9 +138,9 @@
   }
 
   /** 위치 점수. 틀려도 NEAR_KM 안이면 가까운 만큼 최대 40점. */
-  function placeScore(result, elapsedMs) {
+  function placeScore(result, elapsedMs, limitMs = PLACE_LIMIT_MS) {
     if (!result) return 0;
-    if (result.correct) return timeScore(elapsedMs, PLACE_LIMIT_MS);
+    if (result.correct) return timeScore(elapsedMs, limitMs);
     if (!isFinite(result.km)) return 0;
     return Math.round(40 * Math.max(0, 1 - result.km / NEAR_KM));
   }
@@ -152,6 +153,38 @@
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a.slice(0, Math.min(n, a.length));
+  }
+
+  /** 방 비밀번호 해시 (abstract_quiz와 같은 FNV1a 64비트 결합). 빈 비밀번호면 빈 문자열 = 공개방. */
+  function hashRoomPassword(password, roomCode = "") {
+    const clean = (password || "").trim();
+    if (!clean) return "";
+    const salted = `fmq_salt_${String(roomCode).toUpperCase()}_${clean}`;
+    let h1 = 0x811c9dc5;
+    let h2 = 0xcbf29ce4;
+    for (let i = 0; i < salted.length; i++) {
+      const ch = salted.charCodeAt(i);
+      h1 ^= ch;
+      h1 = Math.imul(h1, 0x01000193) >>> 0;
+      h2 ^= ch * 31;
+      h2 = Math.imul(h2, 0x01000193) >>> 0;
+    }
+    return h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+  }
+
+  /** 읽기 쉬운 방 코드 (헷갈리는 O·0·I·1 제외). */
+  function generateRoomCode(length = 5, rng = Math.random) {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let out = "";
+    for (let i = 0; i < length; i++) out += chars.charAt(Math.floor(rng() * chars.length));
+    return out;
+  }
+
+  /** 멀티 순위: 총점, 같으면 이름+위치 맞힌 수, 그다음 닉네임 순. players: [{nick, total, nameHits, placeHits}] */
+  function rankPlayers(players) {
+    return players
+      .slice()
+      .sort((a, b) => b.total - a.total || b.nameHits + b.placeHits - (a.nameHits + a.placeHits) || a.nick.localeCompare(b.nick, "ko"));
   }
 
   /** 판 결과 요약. results: [{country, nameOk, placeOk, km, nameScore, placeScore}] */
@@ -171,6 +204,7 @@
     ROUND_SIZE,
     NAME_LIMIT_MS,
     PLACE_LIMIT_MS,
+    MULTI_PLACE_LIMIT_MS,
     NEAR_TAP_PX,
     NEAR_TAP_KM,
     NEAR_KM,
@@ -188,6 +222,9 @@
     placeScore,
     pickRound,
     summarize,
+    hashRoomPassword,
+    generateRoomCode,
+    rankPlayers,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;

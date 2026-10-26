@@ -3,6 +3,7 @@
  * app.js — 국기·지도 찾기 화면 제어
  * 한 문제 = 1단계(국기 보고 이름 쓰기) → 2단계(지도에서 그 나라 누르기).
  * 규칙·점수 계산은 engine.js(GameEngine)에 있고, 여기는 화면·입력·지도 확대/이동만 다룬다.
+ * 멀티플레이(multi.js)는 window.FlagApp으로 지도·화면 도구를 빌려 쓰고, 멀티 중에는 입력이 그쪽으로 간다.
  */
 (function () {
   "use strict";
@@ -176,7 +177,7 @@
 
   /* ---------- 화면 전환 ---------- */
   function show(id) {
-    for (const s of ["screen-home", "screen-play", "screen-result"]) $(s).classList.toggle("hidden", s !== id);
+    for (const s of ["screen-home", "screen-lobby", "screen-play", "screen-result"]) $(s).classList.toggle("hidden", s !== id);
     $("hud").classList.toggle("hidden", id !== "screen-play");
   }
   function setStage(next) {
@@ -234,6 +235,8 @@
     results = [];
     cur = null;
     $("hud-score").textContent = "0";
+    $("screen-play").classList.remove("multi", "reveal");
+    for (const id of ["board", "btn-confirm", "hud-room"]) $(id).classList.add("hidden");
     show("screen-play");
     nextQuestion();
   }
@@ -291,9 +294,10 @@
   }
 
   function onMapTap(clientX, clientY) {
-    if (stage !== "place") return;
     const hitEl = document.elementFromPoint(clientX, clientY);
     const path = hitEl && hitEl.closest ? hitEl.closest(".wmap .land path") : null;
+    if (multiActive()) return window.FlagMulti.onMapTap({ xy: toMap(clientX, clientY), path });
+    if (stage !== "place") return;
     submitPlace({ xy: toMap(clientX, clientY), path });
   }
 
@@ -375,6 +379,8 @@
     $("r-best").textContent = isBest ? "🎉 최고 기록!" : `최고 기록 ${store.best}점`;
     $("r-name").textContent = `${s.nameHits} / ${results.length}`;
     $("r-place").textContent = `${s.placeHits} / ${results.length}`;
+    for (const id of ["r-stats", "r-missed-title", "r-missed", "btn-again"]) $(id).classList.remove("hidden");
+    for (const id of ["r-rank", "r-wait", "btn-r-leave"]) $(id).classList.add("hidden");
     $("r-missed-title").textContent = s.missed.length ? `틀린 나라 ${s.missed.length}곳` : "모두 맞혔어요!";
     $("r-missed").innerHTML = s.missed
       .map((r) => {
@@ -389,18 +395,25 @@
   }
 
   /* ---------- 입력 ---------- */
+  function multiActive() {
+    return Boolean(window.FlagMulti && window.FlagMulti.active);
+  }
   $("name-form").addEventListener("submit", (e) => {
     e.preventDefault();
+    if (multiActive()) return window.FlagMulti.submitName($("name-in").value);
     submitName($("name-in").value, false);
   });
   // 한글 조합 중 Enter는 무시한다 (조합이 끝난 다음 Enter에서 제출)
   $("name-in").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && e.isComposing) e.preventDefault();
   });
-  $("btn-pass").onclick = () => submitName("", false);
+  $("btn-pass").onclick = () => (multiActive() ? window.FlagMulti.submitName("") : submitName("", false));
   $("btn-next").onclick = nextQuestion;
   $("btn-start").onclick = startGame;
-  $("btn-again").onclick = startGame;
+  $("btn-again").onclick = () => (multiActive() ? window.FlagMulti.again() : startGame());
+
+  // 멀티플레이가 빌려 쓰는 도구
+  window.FlagApp = { svg, fx, toMap, pxPerUnit, fitTo, resetView, clearMapFx, show, feedback, objParticle, stopTimer };
 
   const store = loadStore();
   $("home-best").textContent = store.plays ? `최고 기록 ${store.best}점 · ${store.plays}판` : "";

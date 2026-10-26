@@ -108,3 +108,29 @@ test("자료: 나라마다 국기·지도 경로·표식 원이 있다", () => {
     assert.ok(w.MAP_SVG.includes(`data-m="${c.code}"`), `표식 ${c.code}`);
   }
 });
+
+test("멀티: 위치 점수는 넘겨준 제한 시간으로 계산", () => {
+  const ok = { correct: true, km: 0 };
+  assert.equal(E.placeScore(ok, 20000), 20);
+  assert.equal(E.placeScore(ok, 20000, E.MULTI_PLACE_LIMIT_MS), 36);
+  assert.equal(E.placeScore(ok, 0, E.MULTI_PLACE_LIMIT_MS), 100);
+});
+
+test("멀티: 방 비밀번호 해시와 방 코드", () => {
+  assert.equal(E.hashRoomPassword("", "ABCDE"), "");
+  const h = E.hashRoomPassword("1234", "abcde");
+  assert.match(h, /^[0-9a-f]{16}$/);
+  assert.equal(h, E.hashRoomPassword(" 1234 ", "ABCDE"));
+  assert.notEqual(h, E.hashRoomPassword("1234", "ABCDF"));
+  const code = E.generateRoomCode(5);
+  assert.match(code, /^[A-HJ-NP-Z2-9]{5}$/);
+});
+
+test("멀티: 순위는 총점 → 맞힌 수 → 닉네임", () => {
+  const r = E.rankPlayers([
+    { nick: "다", total: 300, nameHits: 2, placeHits: 1 },
+    { nick: "가", total: 500, nameHits: 1, placeHits: 1 },
+    { nick: "나", total: 300, nameHits: 3, placeHits: 2 },
+  ]);
+  assert.deepEqual(r.map((p) => p.nick), ["가", "나", "다"]);
+});
