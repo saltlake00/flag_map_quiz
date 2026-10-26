@@ -134,3 +134,45 @@ test("멀티: 순위는 총점 → 맞힌 수 → 닉네임", () => {
   ]);
   assert.deepEqual(r.map((p) => p.nick), ["가", "나", "다"]);
 });
+
+test("출제 방식: 단계와 만점", () => {
+  assert.deepEqual(E.modeStages("both"), { name: true, place: true });
+  assert.deepEqual(E.modeStages("name"), { name: true, place: false });
+  assert.deepEqual(E.modeStages("place"), { name: false, place: true });
+  assert.equal(E.normalizeMode("이상한값"), "both");
+  assert.equal(E.maxScore("both", 10), 2000);
+  assert.equal(E.maxScore("name", 10), 1000);
+  assert.equal(E.maxScore("place", 10), 1000);
+  assert.equal(E.maxScore("place"), 1000); // 문제 수 기본 10
+});
+
+test("요약: 방식마다 만점과 틀린 문제가 다르다", () => {
+  const rs = [
+    { country: { code: "kr" }, nameOk: true, placeOk: false, km: null, nameScore: 90, placeScore: 0 },
+    { country: { code: "il" }, nameOk: false, placeOk: false, km: null, nameScore: 0, placeScore: 0 },
+  ];
+  const n = E.summarize(rs, "name");
+  assert.equal(n.max, 200);
+  assert.deepEqual(n.missed.map((r) => r.country.code), ["il"]); // 위치는 안 풀었으니 kr은 맞힌 문제
+  const p = E.summarize([{ country: { code: "jp" }, nameOk: false, placeOk: true, km: 0, nameScore: 0, placeScore: 70 }], "place");
+  assert.equal(p.max, 100);
+  assert.equal(p.total, 70);
+  assert.deepEqual(p.missed, []);
+});
+
+test("최고 기록: 방식별로 따로, 옛 기록은 이름+위치로", () => {
+  const old = E.normalizeStore({ best: 1234, plays: 5 });
+  assert.deepEqual(old, { best: { both: 1234, name: 0, place: 0 }, plays: 5 });
+  assert.deepEqual(E.normalizeStore(null), { best: { both: 0, name: 0, place: 0 }, plays: 0 });
+  let r = E.recordBest({ best: 1234, plays: 5 }, "name", 700);
+  assert.ok(r.isBest);
+  assert.equal(r.store.best.name, 700);
+  assert.equal(r.store.best.both, 1234);
+  assert.equal(r.store.plays, 6);
+  r = E.recordBest(r.store, "name", 650);
+  assert.ok(!r.isBest);
+  assert.equal(r.store.best.name, 700);
+  r = E.recordBest(r.store, "both", 1300);
+  assert.ok(r.isBest);
+  assert.equal(r.store.best.place, 0);
+});

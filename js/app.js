@@ -1,7 +1,7 @@
 // -*- coding: utf-8 -*-
 /**
  * app.js — 국기·지도 찾기 화면 제어
- * 한 문제 = 1단계(국기 보고 이름 쓰기) → 2단계(지도에서 그 나라 누르기).
+ * 출제 방식(시작할 때 고름): 이름 + 위치(국기 보고 이름 → 지도에서 찾기) / 이름만 / 위치만(나라 이름을 보고 지도에서 찾기).
  * 규칙·점수 계산은 engine.js(GameEngine)에 있고, 여기는 화면·입력·지도 확대/이동만 다룬다.
  * 멀티플레이(multi.js)는 window.FlagApp으로 지도·화면 도구를 빌려 쓰고, 멀티 중에는 입력이 그쪽으로 간다.
  */
@@ -11,6 +11,13 @@
   const E = window.GameEngine;
   const $ = (id) => document.getElementById(id);
   const STORE_KEY = "flagmap.v1";
+  const MODE_KEY = "flagmap.mode";
+  const QUIT_ARM_MS = 3000; // 「나가기」를 이 시간 안에 한 번 더 눌러야 나간다
+  const MODE_TEXT = {
+    both: { label: "이름 + 위치", desc: "국기 → 이름 입력 → 지도에서 위치 선택." },
+    name: { label: "이름만", desc: "국기 → 이름 입력. 정답 후 지도에 위치 표시." },
+    place: { label: "위치만", desc: "국기·나라 이름 → 지도에서 위치 선택." },
+  };
   const MAP_H = 394; // scripts/build_data.py가 만든 viewBox 높이
   const MIN_W = 50; // 최대 확대(지도 너비 50단위)
   const TALL_SLACK = 1.6; // 길쭉한 지도 칸에서 위아래로 비워 둘 수 있는 높이 배수
@@ -23,13 +30,14 @@
   let stageStart = 0;
   let rafId = null;
   let cur = null; // 지금 문제 기록 {country, nameOk, placeOk, km, nameScore, placeScore}
+  let mode = "both"; // 혼자 하기 출제 방식
 
   /* ---------- 기록 ---------- */
   function loadStore() {
     try {
-      return JSON.parse(localStorage.getItem(STORE_KEY)) || { best: 0, plays: 0 };
+      return E.normalizeStore(JSON.parse(localStorage.getItem(STORE_KEY)));
     } catch (e) {
-      return { best: 0, plays: 0 };
+      return E.normalizeStore(null);
     }
   }
   function saveStore(s) {
@@ -183,9 +191,31 @@
   function setStage(next) {
     stage = next;
     const play = $("screen-play");
-    play.classList.toggle("name", next === "name");
+    play.classList.toggle("name", next === "name" || next === "nameReveal");
     play.classList.toggle("place", next === "place" || next === "reveal");
+    play.classList.toggle("reveal", next === "reveal" || next === "nameReveal");
     stageStart = performance.now();
+  }
+  /** 단계 이름: 이름+위치는 「1/2 · 나라 이름」, 한 단계만 풀면 단계 번호 없이. */
+  function stageLabel(m, kind) {
+    const text = kind === "name" ? "나라 이름" : "지도에서 찾기";
+    return m === "both" ? `${kind === "name" ? 1 : 2}/2 · ${text}` : text;
+  }
+  function setPlayMode(m) {
+    const play = $("screen-play");
+    for (const k of E.MODES) play.classList.toggle("mode-" + k, k === m);
+  }
+  /** 타이머 막대와 남은 초. rest면 답하는 단계가 아니라 회색 막대만(초는 안 보임). */
+  function setTimer(leftMs, limitMs, rest) {
+    const ratio = Math.max(0, Math.min(1, leftMs / limitMs));
+    const low = !rest && ratio < 0.3;
+    const bar = $("timer-bar");
+    bar.style.width = ratio * 100 + "%";
+    bar.classList.toggle("low", low);
+    bar.classList.toggle("rest", Boolean(rest));
+    const sec = $("timer-sec");
+    sec.textContent = rest || leftMs <= 0 ? "" : `${Math.ceil(leftMs / 1000)}초`;
+    sec.classList.toggle("low", low);
   }
   function feedback(kind, text, sub) {
     const el = $("feedback");
@@ -208,11 +238,9 @@
   /* ---------- 타이머 ---------- */
   function tick() {
     const limit = stage === "name" ? E.NAME_LIMIT_MS : E.PLACE_LIMIT_MS;
-    const left = Math.max(0, 1 - (performance.now() - stageStart) / limit);
-    const bar = $("timer-bar");
-    bar.style.width = left * 100 + "%";
-    bar.classList.toggle("low", left < 0.3);
-    if (left <= 0) {
+    const leftMs = Math.max(0, limit - (performance.now() - stageStart));
+    setTimer(leftMs, limit, false);
+    if (leftMs <= 0) {
       if (stage === "name") submitName("", true);
       else if (stage === "place") submitPlace(null);
       return;
@@ -226,16 +254,19 @@
   function stopTimer() {
     cancelAnimationFrame(rafId);
     rafId = null;
+    $("timer-sec").textContent = "";
   }
 
   /* ---------- 한 판 ---------- */
   function startGame() {
+    disarmQuit();
     questions = E.pickRound(window.WORLD, E.ROUND_SIZE);
     qi = 0;
     results = [];
     cur = null;
     $("hud-score").textContent = "0";
     $("screen-play").classList.remove("multi", "reveal");
+    setPlayMode(mode);
     for (const id of ["board", "btn-confirm", "hud-room"]) $(id).classList.add("hidden");
     show("screen-play");
     nextQuestion();
@@ -251,12 +282,13 @@
     resetView();
     $("hud-q").textContent = `${qi} / ${questions.length}`;
     $("flag").src = `primary_data/flags/${c.code}.svg`;
-    $("stage").textContent = "1단계 · 나라 이름";
-    $("ask").textContent = "이 국기의 나라는?";
     $("feedback").className = "feedback";
     $("feedback").textContent = "";
-    $("name-form").classList.remove("hidden");
     $("btn-next").classList.add("hidden");
+    if (mode === "place") return startPlace();
+    $("stage").textContent = stageLabel(mode, "name");
+    $("ask").textContent = "이 국기의 나라는?";
+    $("name-form").classList.remove("hidden");
     const input = $("name-in");
     input.value = "";
     input.disabled = false;
@@ -277,14 +309,35 @@
     if (cur.nameOk) feedback("ok", `정답! +${cur.nameScore}`, c.name);
     else feedback("no", timeout ? "시간 끝!" : "아쉬워요", `정답은 ${c.name}`);
     addScore(cur.nameScore);
+    if (mode === "name") {
+      // 이름만: 다음 문제로 넘어가기 전에 지도에서 위치를 보여 준다
+      setStage("nameReveal");
+      showAnswerOnMap(c);
+      showNext();
+      return;
+    }
     stage = "wait";
     setTimeout(startPlace, 1000);
+  }
+
+  /** 정답 나라를 칠하고 그 나라로 지도를 옮긴다. */
+  function showAnswerOnMap(c) {
+    const answerPath = svg.querySelector(`path[data-c="${c.code}"]`);
+    answerPath.classList.add("answer");
+    svg.querySelector(`circle[data-m="${c.code}"]`).classList.add("on");
+    const b = answerPath.getBBox();
+    fitTo({ x: b.x, y: b.y, w: b.width, h: b.height });
+  }
+  function showNext() {
+    $("btn-next").textContent = qi >= questions.length ? "결과 보기 ▶" : "다음 ▶";
+    $("btn-next").classList.remove("hidden");
+    $("btn-next").focus({ preventScroll: true });
   }
 
   function startPlace() {
     const c = cur.country;
     $("name-form").classList.add("hidden");
-    $("stage").textContent = "2단계 · 지도에서 찾기";
+    $("stage").textContent = stageLabel(mode, "place");
     $("ask").innerHTML = `지도에서 <b>${c.name}</b>${objParticle(c.name)} 누르세요`;
     $("feedback").className = "feedback";
     $("feedback").textContent = "";
@@ -350,10 +403,8 @@
     else if (!tap) feedback("no", "시간 끝!", c.where);
     else feedback("no", `약 ${res.km.toLocaleString()}km 빗나감${cur.placeScore ? ` +${cur.placeScore}` : ""}`, c.where);
 
-    stage = "reveal";
-    $("btn-next").textContent = qi >= questions.length ? "결과 보기 ▶" : "다음 ▶";
-    $("btn-next").classList.remove("hidden");
-    $("btn-next").focus({ preventScroll: true });
+    setStage("reveal");
+    showNext();
   }
 
   /** 받침이 있으면 「을」, 없으면 「를」. */
@@ -367,31 +418,53 @@
     stopTimer();
     stage = "idle";
     cur = null;
-    const s = E.summarize(results);
-    const store = loadStore();
-    const isBest = s.total > store.best;
-    store.best = Math.max(store.best, s.total);
-    store.plays += 1;
+    const s = E.summarize(results, mode);
+    const { store, isBest } = E.recordBest(loadStore(), mode, s.total);
     saveStore(store);
-
-    $("r-total").textContent = s.total;
-    $("r-max").textContent = ` / ${s.max}`;
-    $("r-best").textContent = isBest ? "🎉 최고 기록!" : `최고 기록 ${store.best}점`;
-    $("r-name").textContent = `${s.nameHits} / ${results.length}`;
-    $("r-place").textContent = `${s.placeHits} / ${results.length}`;
-    for (const id of ["r-stats", "r-missed-title", "r-missed", "btn-again"]) $(id).classList.remove("hidden");
-    for (const id of ["r-rank", "r-wait", "btn-r-leave"]) $(id).classList.add("hidden");
-    $("r-missed-title").textContent = s.missed.length ? `틀린 나라 ${s.missed.length}곳` : "모두 맞혔어요!";
-    $("r-missed").innerHTML = s.missed
-      .map((r) => {
-        const name = r.nameOk ? '<span class="o">이름 ✓</span>' : '<span class="x">이름 ✗</span>';
-        const place = r.placeOk
-          ? '<span class="o">위치 ✓</span>'
-          : `<span class="x">위치 ✗</span>${isFinite(r.km) ? ` (약 ${r.km.toLocaleString()}km)` : " (시간 끝)"}`;
-        return `<li><img src="primary_data/flags/${r.country.code}.svg" alt=""><span class="nm">${r.country.name}</span><span class="tags">${name} · ${place}</span></li>`;
-      })
-      .join("");
+    showResult({
+      mode,
+      total: s.total,
+      max: s.max,
+      best: isBest && s.total > 0 ? "🎉 이 방식 최고 기록!" : `${MODE_TEXT[mode].label} 최고 기록 ${store.best[mode].toLocaleString()}점`,
+      nameHits: s.nameHits,
+      placeHits: s.placeHits,
+      entries: results,
+    });
+    for (const id of ["btn-again", "btn-home"]) $(id).classList.remove("hidden");
+    for (const id of ["r-rank", "r-wait", "btn-r-leave", "btn-to-lobby"]) $(id).classList.add("hidden");
     show("screen-result");
+  }
+
+  /** 결과 화면 공통 부분 (혼자·멀티). entries: [{country, nameOk, placeOk, km, nameScore, placeScore}] */
+  function showResult(r) {
+    const st = E.modeStages(r.mode);
+    const n = r.entries.length;
+    $("r-title").textContent = `결과 · ${MODE_TEXT[r.mode].label}`;
+    $("r-total").textContent = r.total.toLocaleString();
+    $("r-max").textContent = ` / ${r.max.toLocaleString()}`;
+    $("r-best").textContent = r.best;
+    $("r-name").textContent = `${r.nameHits} / ${n}`;
+    $("r-place").textContent = `${r.placeHits} / ${n}`;
+    $("r-stats").classList.remove("hidden");
+    $("r-stat-name").classList.toggle("hidden", !st.name);
+    $("r-stat-place").classList.toggle("hidden", !st.place);
+    const wrong = r.entries.filter((e) => (st.name && !e.nameOk) || (st.place && !e.placeOk)).length;
+    $("r-review-title").textContent = !n ? "" : wrong ? `문제별 결과 · 틀린 문제 ${wrong}개` : "문제별 결과 · 모두 맞혔어요!";
+    $("r-review").innerHTML = r.entries.map((e, i) => reviewRow(e, i, st)).join("");
+  }
+  function reviewRow(e, i, st) {
+    const tags = [];
+    if (st.name) tags.push(e.nameOk ? `<span class="o">이름 ✓ +${e.nameScore}</span>` : '<span class="x">이름 ✗</span>');
+    if (st.place) {
+      if (e.placeOk) tags.push(`<span class="o">위치 ✓ +${e.placeScore}</span>`);
+      else if (e.km != null && isFinite(e.km)) tags.push(`<span class="x">위치 ✗ ${e.km.toLocaleString()}km</span>${e.placeScore ? ` +${e.placeScore}` : ""}`);
+      else tags.push('<span class="x">위치 ✗ 시간 끝</span>');
+    }
+    const bad = (st.name && !e.nameOk) || (st.place && !e.placeOk);
+    return (
+      `<li class="${bad ? "bad" : ""}"><span class="no">${i + 1}</span><img src="primary_data/flags/${e.country.code}.svg" alt="">` +
+      `<span class="nm">${e.country.name}</span><b class="pt">${e.nameScore + e.placeScore}</b><span class="tags">${tags.join(" · ")}</span></li>`
+    );
   }
 
   /* ---------- 입력 ---------- */
@@ -411,10 +484,101 @@
   $("btn-next").onclick = nextQuestion;
   $("btn-start").onclick = startGame;
   $("btn-again").onclick = () => (multiActive() ? window.FlagMulti.again() : startGame());
+  $("btn-home").onclick = goHome;
+
+  // 나가기: 실수로 눌러도 판이 끝나지 않게 한 번 더 눌러야 나간다
+  let quitArmed = 0;
+  let quitTimer = null;
+  function disarmQuit() {
+    quitArmed = 0;
+    clearTimeout(quitTimer);
+    $("btn-quit").textContent = "나가기";
+    $("btn-quit").classList.remove("armed");
+  }
+  $("btn-quit").onclick = () => {
+    if (!quitArmed) {
+      quitArmed = performance.now();
+      $("btn-quit").textContent = "한 번 더 누르면 나가요";
+      $("btn-quit").classList.add("armed");
+      quitTimer = setTimeout(disarmQuit, QUIT_ARM_MS);
+      return;
+    }
+    disarmQuit();
+    if (multiActive()) return window.FlagMulti.leave();
+    goHome();
+  };
+  function goHome() {
+    stopTimer();
+    stage = "idle";
+    cur = null;
+    $("screen-play").classList.remove("name", "place", "reveal");
+    show("screen-home");
+    renderHomeBest();
+  }
+
+  /* ---------- 출제 방식 고르기 (처음 화면·대기실이 같이 쓴다) ---------- */
+  function setSeg(el, m) {
+    for (const b of el.querySelectorAll("[data-mode]")) {
+      const on = b.dataset.mode === m;
+      b.setAttribute("aria-checked", String(on));
+      b.tabIndex = on ? 0 : -1;
+    }
+    const desc = $(el.id + "-desc");
+    if (desc) desc.textContent = `${MODE_TEXT[m].desc} 만점 ${E.maxScore(m).toLocaleString()}`;
+  }
+  function bindSeg(el, onPick) {
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-mode]");
+      if (b && !b.disabled) onPick(b.dataset.mode);
+    });
+    // 라디오 묶음답게 ←·→로 옮긴다
+    el.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const btns = [...el.querySelectorAll("[data-mode]")];
+      const i = btns.findIndex((b) => b.getAttribute("aria-checked") === "true");
+      const next = btns[(i + (e.key === "ArrowRight" ? 1 : btns.length - 1)) % btns.length];
+      if (next.disabled) return;
+      e.preventDefault();
+      onPick(next.dataset.mode);
+      next.focus();
+    });
+  }
+  function renderHomeBest() {
+    const store = loadStore();
+    const best = store.best[mode];
+    $("home-best").textContent = best ? `${MODE_TEXT[mode].label} 최고 기록 ${best.toLocaleString()}점` : store.plays ? "이 방식은 아직 기록이 없어요" : "";
+  }
+  function pickMode(m) {
+    mode = E.normalizeMode(m);
+    setSeg($("mode-solo"), mode);
+    renderHomeBest();
+    try {
+      localStorage.setItem(MODE_KEY, mode);
+    } catch (e) {
+      /* 기록 없이 진행 */
+    }
+  }
+  bindSeg($("mode-solo"), pickMode);
+  try {
+    mode = E.normalizeMode(localStorage.getItem(MODE_KEY));
+  } catch (e) {
+    mode = "both";
+  }
+  pickMode(mode);
+
+  /* ---------- 처음 화면 탭 ---------- */
+  function selectTab(which) {
+    for (const k of ["solo", "multi"]) {
+      $("tab-" + k).setAttribute("aria-selected", String(k === which));
+      $("panel-" + k).classList.toggle("hidden", k !== which);
+    }
+  }
+  $("tab-solo").onclick = () => selectTab("solo");
+  $("tab-multi").onclick = () => selectTab("multi");
 
   // 멀티플레이가 빌려 쓰는 도구
-  window.FlagApp = { svg, fx, toMap, pxPerUnit, fitTo, resetView, clearMapFx, show, feedback, objParticle, stopTimer };
-
-  const store = loadStore();
-  $("home-best").textContent = store.plays ? `최고 기록 ${store.best}점 · ${store.plays}판` : "";
+  window.FlagApp = {
+    svg, fx, toMap, pxPerUnit, fitTo, resetView, clearMapFx, show, feedback, objParticle, stopTimer, disarmQuit,
+    setTimer, stageLabel, setPlayMode, showAnswerOnMap, showResult, setSeg, bindSeg, selectTab, MODE_TEXT,
+  };
 })();

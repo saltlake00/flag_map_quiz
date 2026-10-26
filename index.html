@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>국기·지도 찾기</title>
 <!-- 파일을 고치면 ?v= 판 번호를 모두 같이 올린다 (Pages 10분 캐시에 옛 파일과 새 파일이 섞이지 않게) -->
-<link rel="stylesheet" href="style.css?v=20261026b">
+<link rel="stylesheet" href="style.css?v=20261026c">
 </head>
 <body>
 <header class="topbar">
@@ -15,77 +15,113 @@
       <span class="hidden" id="hud-room"></span>
       <span id="hud-q">1 / 10</span>
       <span class="hud-score"><b id="hud-score">0</b>점</span>
+      <button class="btn ghost quit" id="btn-quit">나가기</button>
     </div>
   </div>
 </header>
 
 <main>
-  <!-- 처음 화면 -->
+  <!-- 처음 화면: 혼자 / 같이 탭 -->
   <section id="screen-home" class="card home">
-    <h1>국기를 보고 나라 이름을 쓰고,<br>세계 지도에서 그 나라를 찾으세요</h1>
-    <ol class="rules">
-      <li>한 판에 국기 <b>10개</b>. 이름 15초, 위치 20초.</li>
-      <li>빨리 맞힐수록 높은 점수 (문제마다 이름 100 + 위치 100).</li>
-      <li>위치가 틀려도 정답에서 2,000km 안이면 가까운 만큼 부분 점수.</li>
-      <li>지도는 두 손가락·휠·＋로 확대하고 끌어서 옮깁니다. 작은 나라는 확대해서 누르세요.</li>
-    </ol>
-    <p class="best" id="home-best"></p>
-    <button class="btn primary big" id="btn-start">혼자 하기</button>
+    <h1>국기 이름 맞히기 · 지도에서 위치 찾기</h1>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-solo" aria-controls="panel-solo" aria-selected="true">싱글</button>
+      <button type="button" role="tab" id="tab-multi" aria-controls="panel-multi" aria-selected="false">멀티</button>
+    </div>
 
-    <div class="together">
-      <h2>친구와 같이</h2>
-      <p class="sub">모두 같은 국기를 같은 시간에 풉니다. 지도는 핀을 놓고 「확정」을 눌러 제출하고, 위치 단계는 25초입니다.</p>
+    <div id="panel-solo" role="tabpanel" aria-labelledby="tab-solo">
+      <h3 class="label">출제 방식</h3>
+      <div class="seg" role="radiogroup" aria-label="출제 방식" id="mode-solo">
+        <button type="button" role="radio" data-mode="both">이름 + 위치</button>
+        <button type="button" role="radio" data-mode="name">이름만</button>
+        <button type="button" role="radio" data-mode="place">위치만</button>
+      </div>
+      <p class="sub mode-desc" id="mode-solo-desc"></p>
+      <p class="best" id="home-best"></p>
+      <button class="btn primary big wide" id="btn-start">게임 시작</button>
+    </div>
+
+    <div id="panel-multi" role="tabpanel" aria-labelledby="tab-multi" class="hidden">
+      <p class="sub lead">최대 12명 · 같은 문제 동시 출제 · 출제 방식은 방장이 설정</p>
       <label class="field">
-        <span>내 닉네임</span>
+        <span>닉네임</span>
         <input id="mp-nick" maxlength="12" autocomplete="off" enterkeyhint="next">
       </label>
       <label class="field">
         <span>방 비밀번호 (선택)</span>
-        <input id="mp-pass" maxlength="20" autocomplete="off" placeholder="비워 두면 코드만으로 입장">
+        <input id="mp-pass" maxlength="20" autocomplete="off" placeholder="없으면 비워 두기">
       </label>
+      <h3 class="label">방 입장</h3>
       <div class="join-row">
-        <button class="btn" id="btn-create">방 만들기</button>
-        <span class="or">또는</span>
         <input id="mp-code" maxlength="5" autocomplete="off" placeholder="방 코드" aria-label="방 코드" enterkeyhint="go">
-        <button class="btn" id="btn-join">참가</button>
+        <button class="btn primary" id="btn-join">입장</button>
       </div>
+      <div class="or-line"><span>또는</span></div>
+      <button class="btn wide" id="btn-create">방 생성</button>
       <p class="alert hidden" id="mp-alert" role="alert"></p>
     </div>
+
+    <details class="rules-box">
+      <summary>규칙</summary>
+      <ol class="rules">
+        <li>한 판에 국기 <b>10개</b>. 이름 15초, 위치 20초(멀티 25초).</li>
+        <li>빨리 맞힐수록 높은 점수. 단계마다 바로 맞히면 100점, 시간 끝에 맞히면 20점.</li>
+        <li>위치가 틀려도 정답에서 2,000km 안이면 가까운 만큼 부분 점수.</li>
+        <li>지도는 두 손가락·휠·＋로 확대하고 끌어서 옮깁니다. 작은 나라는 확대해서 누르세요.</li>
+        <li>최고 기록은 출제 방식마다 따로 이 브라우저에 남습니다.</li>
+      </ol>
+    </details>
   </section>
 
   <!-- 대기실 -->
   <section id="screen-lobby" class="card lobby hidden">
-    <p class="sub">방 코드</p>
-    <div class="room-code" id="lobby-code">-----</div>
-    <button class="btn" id="btn-copy">초대 링크 복사</button>
-    <h3 id="lobby-count">참가자</h3>
+    <div class="lobby-head">
+      <div>
+        <p class="sub">방 코드</p>
+        <div class="room-code" id="lobby-code">-----</div>
+      </div>
+      <button class="btn" id="btn-copy">초대 링크</button>
+    </div>
+    <h3 class="label">출제 방식 <span id="mode-lobby-who"></span></h3>
+    <div class="seg" role="radiogroup" aria-label="출제 방식" id="mode-lobby">
+      <button type="button" role="radio" data-mode="both">이름 + 위치</button>
+      <button type="button" role="radio" data-mode="name">이름만</button>
+      <button type="button" role="radio" data-mode="place">위치만</button>
+    </div>
+    <p class="sub mode-desc" id="mode-lobby-desc"></p>
+    <h3 class="label" id="lobby-count">참가자</h3>
     <ul class="people" id="lobby-people"></ul>
-    <button class="btn primary big hidden" id="btn-mp-start">시작하기</button>
-    <p class="sub" id="lobby-wait">방장이 시작하면 바로 시작됩니다.</p>
-    <p class="sub" id="lobby-net"></p>
-    <button class="btn ghost" id="btn-leave">나가기</button>
+    <button class="btn primary big wide hidden" id="btn-mp-start">게임 시작</button>
+    <p class="wait" id="lobby-wait">방장 시작 대기 중</p>
+    <div class="lobby-foot">
+      <span class="sub" id="lobby-net"></span>
+      <button class="btn ghost" id="btn-leave">방 나가기</button>
+    </div>
   </section>
 
   <!-- 게임 화면 -->
   <section id="screen-play" class="play hidden">
-    <div class="timer"><div class="timer-bar" id="timer-bar"></div></div>
+    <div class="timer-row">
+      <div class="timer"><div class="timer-bar" id="timer-bar"></div></div>
+      <span class="timer-sec" id="timer-sec"></span>
+    </div>
     <div class="play-grid">
       <div class="side">
+        <div class="card board hidden" id="board">
+          <ol class="people" id="board-list"></ol>
+        </div>
         <div class="card qcard">
-          <div class="stage" id="stage">1단계 · 나라 이름</div>
+          <div class="stage" id="stage">나라 이름</div>
           <img id="flag" class="flag" alt="국기">
           <div class="ask" id="ask"></div>
           <form id="name-form" autocomplete="off">
             <input id="name-in" aria-label="나라 이름" placeholder="나라 이름" enterkeyhint="done">
             <button class="btn primary">확인</button>
-            <button type="button" class="btn ghost" id="btn-pass">모르겠음</button>
+            <button type="button" class="btn ghost" id="btn-pass">모름</button>
           </form>
           <div class="feedback" id="feedback" aria-live="polite"></div>
           <button class="btn primary hidden" id="btn-confirm">확정</button>
           <button class="btn primary hidden" id="btn-next">다음 ▶</button>
-        </div>
-        <div class="card board hidden" id="board">
-          <ol class="people" id="board-list"></ol>
         </div>
       </div>
       <div class="card mapcard" id="mapcard">
@@ -101,19 +137,25 @@
 
   <!-- 결과 화면 -->
   <section id="screen-result" class="card result hidden">
-    <h2>결과</h2>
+    <h2 id="r-title">결과</h2>
     <div class="total"><b id="r-total">0</b><span id="r-max"> / 2000</span></div>
     <p class="best" id="r-best"></p>
     <ol class="people rank hidden" id="r-rank"></ol>
     <div class="stats" id="r-stats">
-      <div><span>이름</span><b id="r-name">0 / 10</b></div>
-      <div><span>위치</span><b id="r-place">0 / 10</b></div>
+      <div id="r-stat-name"><span>이름</span><b id="r-name">0 / 10</b></div>
+      <div id="r-stat-place"><span>위치</span><b id="r-place">0 / 10</b></div>
     </div>
-    <h3 id="r-missed-title">틀린 나라</h3>
-    <ul class="missed" id="r-missed"></ul>
-    <button class="btn primary big" id="btn-again">한 판 더</button>
-    <p class="sub hidden" id="r-wait">방장이 다시 시작하면 이어집니다.</p>
-    <button class="btn ghost hidden" id="btn-r-leave">방 나가기</button>
+    <h3 id="r-review-title">문제별 결과</h3>
+    <ul class="review" id="r-review"></ul>
+    <div class="result-actions">
+      <button class="btn primary big wide" id="btn-again">다시 하기</button>
+      <p class="wait hidden" id="r-wait">방장 재시작 대기 중</p>
+      <div class="row">
+        <button class="btn hidden" id="btn-to-lobby">대기실로</button>
+        <button class="btn ghost" id="btn-home">메인으로</button>
+        <button class="btn ghost hidden" id="btn-r-leave">방 나가기</button>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -121,13 +163,13 @@
 
 <footer class="foot">국기: flag-icons (MIT) · 지도: Natural Earth (world-atlas) · 나라 목록: daily-study 「배우기」 · 멀티 중계: 공개 MQTT 브로커(EMQX)·PeerJS</footer>
 
-<script src="data/world.js?v=20261026b"></script>
-<script src="js/engine.js?v=20261026b"></script>
+<script src="data/world.js?v=20261026c"></script>
+<script src="js/engine.js?v=20261026c"></script>
 <!-- 멀티플레이 중계 (abstract_quiz와 같은 버전). 불러오지 못해도 혼자 하기는 된다 -->
 <script src="https://unpkg.com/mqtt@5.10.3/dist/mqtt.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/net.js?v=20261026b"></script>
-<script src="js/app.js?v=20261026b"></script>
-<script src="js/multi.js?v=20261026b"></script>
+<script src="js/net.js?v=20261026c"></script>
+<script src="js/app.js?v=20261026c"></script>
+<script src="js/multi.js?v=20261026c"></script>
 </body>
 </html>
