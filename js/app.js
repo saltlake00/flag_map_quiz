@@ -12,6 +12,7 @@
   const STORE_KEY = "flagmap.v1";
   const MAP_H = 394; // scripts/build_data.py가 만든 viewBox 높이
   const MIN_W = 50; // 최대 확대(지도 너비 50단위)
+  const TALL_SLACK = 1.6; // 길쭉한 지도 칸에서 위아래로 비워 둘 수 있는 높이 배수
   const TAP_MOVE_PX = 8; // 이만큼 움직이면 누르기가 아니라 끌기
 
   let questions = [];
@@ -44,19 +45,46 @@
   const fx = svg.querySelector(".fx");
   const FULL = { x: 0, y: 0, w: E.MAP.W, h: MAP_H };
   let view = { ...FULL };
+  applyView();
 
   function applyView() {
     svg.setAttribute("viewBox", `${view.x} ${view.y} ${view.w} ${view.h}`);
   }
-  function clampView() {
-    view.w = Math.min(FULL.w, Math.max(MIN_W, view.w));
-    view.h = (view.w * FULL.h) / FULL.w;
-    view.x = Math.min(FULL.w - view.w, Math.max(0, view.x));
-    view.y = Math.min(FULL.h - view.h, Math.max(0, view.y));
+  // 보기 범위는 지도 칸의 세로/가로 비를 따른다. 폰 세로 화면처럼 칸이 세계 지도보다 길쭉하면
+  // 세계 전체 대신 TALL_SLACK배 높이까지만 위아래를 비우고 그만큼 크게 보인다(나머지는 끌어서 본다).
+  function boxAspect() {
+    const r = svg.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 ? r.height / r.width : FULL.h / FULL.w;
   }
+  function maxW() {
+    return Math.min(FULL.w, (FULL.h / boxAspect()) * TALL_SLACK);
+  }
+  function clampView() {
+    view.w = Math.min(maxW(), Math.max(MIN_W, view.w));
+    view.h = view.w * boxAspect();
+    view.x = Math.min(FULL.w - view.w, Math.max(0, view.x));
+    view.y = view.h >= FULL.h ? (FULL.h - view.h) / 2 : Math.min(FULL.h - view.h, Math.max(0, view.y));
+  }
+  function resetView() {
+    view = { x: 0, y: 0, w: FULL.w };
+    clampView();
+    view.x = (FULL.w - view.w) / 2;
+    clampView();
+    applyView();
+  }
+  // 단계가 바뀌어 지도 칸 크기가 달라지면 보던 가운데를 유지한다
+  new ResizeObserver(() => {
+    const cx = view.x + view.w / 2;
+    const cy = view.y + (view.h || 0) / 2;
+    clampView();
+    view.x = cx - view.w / 2;
+    view.y = cy - view.h / 2;
+    clampView();
+    applyView();
+  }).observe(svg);
   function zoomAt(factor, mx, my) {
     // (mx, my) 지도 좌표가 화면에서 제자리에 있도록 확대
-    const nw = Math.min(FULL.w, Math.max(MIN_W, view.w / factor));
+    const nw = Math.min(maxW(), Math.max(MIN_W, view.w / factor));
     const k = nw / view.w;
     view.x = mx - (mx - view.x) * k;
     view.y = my - (my - view.y) * k;
@@ -73,18 +101,16 @@
   }
   function fitTo(box) {
     const pad = 30;
-    let w = Math.max(box.w + pad * 2, ((box.h + pad * 2) * FULL.w) / FULL.h, 160);
-    view = { x: box.x + box.w / 2 - w / 2, y: box.y + box.h / 2 - (w * FULL.h) / FULL.w / 2, w };
+    const a = boxAspect();
+    let w = Math.max(box.w + pad * 2, (box.h + pad * 2) / a, 160);
+    view = { x: box.x + box.w / 2 - w / 2, y: box.y + box.h / 2 - (w * a) / 2, w };
     clampView();
     applyView();
   }
 
   $("zoom-in").onclick = () => zoomAt(1.6, view.x + view.w / 2, view.y + view.h / 2);
   $("zoom-out").onclick = () => zoomAt(1 / 1.6, view.x + view.w / 2, view.y + view.h / 2);
-  $("zoom-reset").onclick = () => {
-    view = { ...FULL };
-    applyView();
-  };
+  $("zoom-reset").onclick = resetView;
   svg.addEventListener(
     "wheel",
     (e) => {
@@ -219,8 +245,7 @@
     cur = { country: c, nameOk: false, placeOk: false, km: null, nameScore: 0, placeScore: 0 };
     qi += 1;
     clearMapFx();
-    view = { ...FULL };
-    applyView();
+    resetView();
     $("hud-q").textContent = `${qi} / ${questions.length}`;
     $("flag").src = `primary_data/flags/${c.code}.svg`;
     $("stage").textContent = "1단계 · 나라 이름";
