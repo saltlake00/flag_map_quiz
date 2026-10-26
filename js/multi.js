@@ -566,8 +566,9 @@
     A.stopTimer();
     A.disarmQuit();
     const list = ranked().filter((p) => !p.spectating);
-    const myRank = list.findIndex((p) => p.uid === myId) + 1;
     const mine = me() || { total: 0, nameHits: 0, placeHits: 0 };
+    // 동점은 같은 등수(아래 순위표와 같은 규칙): 나와 점수가 같은 첫 사람의 자리.
+    const myRank = list.some((p) => p.uid === myId) ? list.findIndex((p) => p.total === mine.total) + 1 : 0;
     const playing = me() && !me().spectating;
     A.showResult({
       mode: E.normalizeMode(room.mode),

@@ -362,6 +362,8 @@ main {
   .play.mode-name.name:not(.reveal) .mapcard { display: none; }
   .play.place .qcard .feedback:empty { display: none; }
   .play.place .mapcard { padding: 4px; }
+  /* 지도 칸을 화면에 맞추려 내려가도 남은 시간은 보이게: 게임 중 위 줄 바로 아래에 붙인다 */
+  .play.place .timer-row { position: sticky; top: 56px; z-index: 30; margin: 0 -12px 6px; padding: 6px 12px; background: var(--bg-main); }
   .play.place .map-wrap { aspect-ratio: auto; height: calc(100dvh - 210px); min-height: 300px; }
   .play.multi.place .map-wrap { height: calc(100dvh - 260px); }
   .room-code { font-size: 48px; letter-spacing: 0.08em; }
